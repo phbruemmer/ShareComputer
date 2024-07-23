@@ -40,6 +40,9 @@ def connection_handler():
                 print(f"Connection from {addr}")
                 STOP_EVENT_BROADCAST.set()
                 conn.send(b'Connection successfully established!')
+                #
+                #   Execute function -> recv. Data e.g. if mic / cam / screen -> execute the corresponding function
+                #
                 conn.close()
                 STOP_EVENT_CONN_HANDLER.set()
             except socket.timeout:

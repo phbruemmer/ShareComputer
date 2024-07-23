@@ -20,7 +20,9 @@ def listen_for_beacon():
             try:
                 data, addr = sock.recvfrom(BUFFER)
                 print(f"Beacon received from {addr}: {data.decode()}")
-                listening = False
+                continue_listening = input(f" > Do you want to connect to {addr}? (y/n)\n")
+                if continue_listening == 'y':
+                    listening = False
             except socket.timeout:
                 listening = False
                 print("Listening timed out. No beacons received.")
@@ -32,6 +34,9 @@ def listen_for_beacon():
 def client_connected(sock):
     data = sock.recv(BUFFER)
     print(data.decode())
+    #
+    #   CONTINUE HERE -> User input - mic / cam / screen -> send data to the server... (basic Idea)
+    #
 
 
 def TCP_connect(addr):

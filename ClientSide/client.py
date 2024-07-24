@@ -1,4 +1,7 @@
 import socket
+import threading
+
+import camera_stream
 
 PORT = 5000
 
@@ -32,11 +35,30 @@ def listen_for_beacon():
 
 
 def client_connected(sock):
+    def user_input():
+        print("# # #\nS E L E C T - O P T I O N\n# # #\nCam -> c\nMic -> m\nScreen -> s\n")
+        selected_device = input("(device) > ").lower()
+        if selected_device == 'c':
+            camera_thread = threading.Thread(target=camera_stream.start_camera_stream, args=(sock,))
+            camera_thread.start()
+        elif selected_device == 'm':
+            pass
+        elif selected_device == 's':
+            pass
+        elif selected_device == '':
+            camera_stream.CAMERA_STREAM_STOP_EVENT.set()
+            sock.close()
+            exit(0)
+        else:
+            print("# # #\nI N V A L I D - I N P U T\n# # #")
+        return False
     data = sock.recv(BUFFER)
     print(data.decode())
     #
     #   CONTINUE HERE -> User input - mic / cam / screen -> send data to the server... (basic Idea)
     #
+    while not user_input():
+        user_input()
 
 
 def TCP_connect(addr):

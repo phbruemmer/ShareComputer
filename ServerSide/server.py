@@ -9,7 +9,7 @@ import cv2
 HOST_NAME = socket.gethostname()
 HOST = socket.gethostbyname(HOST_NAME)
 PORT = 5000
-BUFFER = 4096
+BUFFER = 8192
 
 STOP_EVENT_CONN_HANDLER = threading.Event()
 STOP_EVENT_BROADCAST = threading.Event()

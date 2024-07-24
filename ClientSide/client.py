@@ -8,6 +8,10 @@ PORT = 5000
 TIMEOUTS = 10
 BUFFER = 1024
 
+AVAILABLE_DEVICES = {'c': [True, 'Cam -> c'],
+                     'm': [True, 'Mic -> m'],
+                     's': [True, 'Screen -> s']}
+
 
 def listen_for_beacon():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -36,15 +40,22 @@ def listen_for_beacon():
 
 def client_connected(sock):
     def user_input():
-        print("# # #\nS E L E C T - O P T I O N\n# # #\nCam -> c\nMic -> m\nScreen -> s\n")
+        print("# # #\nS E L E C T - O P T I O N\n# # #\n")
+        for i in AVAILABLE_DEVICES:
+            if AVAILABLE_DEVICES[i][0]:
+                print(AVAILABLE_DEVICES[i][1])
         selected_device = input("(device) > ").lower()
-        if selected_device == 'c':
+        available = False
+        if selected_device in AVAILABLE_DEVICES:
+            available = AVAILABLE_DEVICES[selected_device][0]
+        if selected_device == 'c' and available:
+            AVAILABLE_DEVICES[selected_device][0] = False
             camera_thread = threading.Thread(target=camera_stream.start_camera_stream, args=(sock,))
             camera_thread.start()
-        elif selected_device == 'm':
-            pass
-        elif selected_device == 's':
-            pass
+        elif selected_device == 'm' and available:
+            AVAILABLE_DEVICES[selected_device][0] = False
+        elif selected_device == 's' and available:
+            AVAILABLE_DEVICES[selected_device][0] = False
         elif selected_device == '':
             camera_stream.CAMERA_STREAM_STOP_EVENT.set()
             sock.close()

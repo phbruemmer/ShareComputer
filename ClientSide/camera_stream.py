@@ -1,8 +1,5 @@
-import socket
 import pickle
 import struct
-import time
-import numpy
 import cv2
 from capture import capture_cam
 import threading

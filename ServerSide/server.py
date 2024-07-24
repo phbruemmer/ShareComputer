@@ -3,8 +3,9 @@ import socket
 import time
 import struct
 import threading
-
+import argparse
 import cv2
+import pyvirtualcam
 
 HOST_NAME = socket.gethostname()
 HOST = socket.gethostbyname(HOST_NAME)
@@ -40,35 +41,42 @@ def connection_handler():
 
         print(payload_size)
 
-        while True:
-            while len(data) < payload_size:
-                chunk = conn.recv(BUFFER)
-                if not chunk:
-                    return
-                data += chunk
-            packed_msg_size = data[:payload_size]
-            data = data[payload_size:]
-            msg_size = struct.unpack("Q", packed_msg_size)[0]
+        parser = argparse.ArgumentParser(description='Stream video from a camera to a virtual camera.')
+        parser.add_argument('--camera_index', type=int, default=0, help='Index of the physical camera.')
+        parser.add_argument('--width', type=int, default=640, help='Width of the video frame.')
+        parser.add_argument('--height', type=int, default=480, help='Height of the video frame.')
+        parser.add_argument('--fps', type=int, default=30, help='Frames per second.')
 
-            while len(data) < msg_size:
-                data += conn.recv(BUFFER)
+        args = parser.parse_args()
 
-            frame_data = data[:msg_size]
-            data = data[msg_size:]
+        cap = cv2.VideoCapture(args.camera_index)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
 
-            frame = pickle.loads(frame_data)
+        with pyvirtualcam.Camera(args.width, args.height, args.fps) as cam:
+            print(f'Virtual camera started at {cam.device}')
+            while True:
+                while len(data) < payload_size:
+                    chunk = conn.recv(BUFFER)
+                    if not chunk:
+                        return
+                    data += chunk
+                packed_msg_size = data[:payload_size]
+                data = data[payload_size:]
+                msg_size = struct.unpack("Q", packed_msg_size)[0]
 
-            cv2.imshow('Frame', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                while len(data) < msg_size:
+                    data += conn.recv(BUFFER)
 
-        cv2.destroyAllWindows()
-        STOP_EVENT_CONN_HANDLER.set()
+                frame_data = data[:msg_size]
+                data = data[msg_size:]
 
-        """
-        conn.close()
-        STOP_EVENT_CONN_HANDLER.set()
-        """
+                frame = pickle.loads(frame_data)
+
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                cam.send(rgb_frame)
+                cam.sleep_until_next_frame()
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((HOST, PORT))
     sock.listen(5)

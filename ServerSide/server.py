@@ -3,8 +3,8 @@ import socket
 import time
 import struct
 import threading
-import argparse
 import cv2
+import virtual_cam as vc
 import pyvirtualcam
 
 HOST_NAME = socket.gethostname()
@@ -41,19 +41,7 @@ def connection_handler():
 
         print(payload_size)
 
-        parser = argparse.ArgumentParser(description='Stream video from a camera to a virtual camera.')
-        parser.add_argument('--camera_index', type=int, default=0, help='Index of the physical camera.')
-        parser.add_argument('--width', type=int, default=640, help='Width of the video frame.')
-        parser.add_argument('--height', type=int, default=480, help='Height of the video frame.')
-        parser.add_argument('--fps', type=int, default=30, help='Frames per second.')
-
-        args = parser.parse_args()
-
-        cap = cv2.VideoCapture(args.camera_index)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
-
-        with pyvirtualcam.Camera(args.width, args.height, args.fps) as cam:
+        with pyvirtualcam.Camera(vc.args.width, vc.args.height, vc.args.fps) as cam:
             print(f'Virtual camera started at {cam.device}')
             while True:
                 while len(data) < payload_size:

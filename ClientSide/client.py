@@ -50,11 +50,14 @@ def client_connected(sock):
             available = AVAILABLE_DEVICES[selected_device][0]
         if selected_device == 'c' and available:
             AVAILABLE_DEVICES[selected_device][0] = False
+            sock.send(b'c')
             camera_thread = threading.Thread(target=camera_stream.start_camera_stream, args=(sock,))
             camera_thread.start()
         elif selected_device == 'm' and available:
+            sock.send(b'm')
             AVAILABLE_DEVICES[selected_device][0] = False
         elif selected_device == 's' and available:
+            sock.send(b's')
             AVAILABLE_DEVICES[selected_device][0] = False
         elif selected_device == '':
             camera_stream.CAMERA_STREAM_STOP_EVENT.set()

@@ -81,8 +81,15 @@ def connection_handler():
                 #
                 #   Execute function -> recv. Data e.g. if mic / cam / screen -> execute the corresponding function
                 #
-                camera_stream_thread = threading.Thread(target=handle_camera_stream)
-                camera_stream_thread.start()
+
+                recv_cmd = conn.recv(BUFFER)
+                if recv_cmd == b'c':
+                    camera_stream_thread = threading.Thread(target=handle_camera_stream)
+                    camera_stream_thread.start()
+                elif recv_cmd == b'm':
+                    pass
+                elif recv_cmd == b's':
+                    pass
             except socket.timeout:
                 continue
     except Exception as e:

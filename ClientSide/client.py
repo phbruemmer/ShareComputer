@@ -4,6 +4,10 @@ import threading
 import camera_stream
 
 PORT = 5000
+CAM_PORT = 5001
+SCREEN_PORT = 5002
+MIC_PORT = 5003
+
 
 TIMEOUTS = 10
 BUFFER = 1024

@@ -4,8 +4,8 @@ import time
 import struct
 import threading
 import cv2
-import virtual_cam as vc
 import pyvirtualcam
+
 
 HOST_NAME = socket.gethostname()
 HOST = socket.gethostbyname(HOST_NAME)
@@ -14,6 +14,10 @@ BUFFER = 8192
 
 STOP_EVENT_CONN_HANDLER = threading.Event()
 STOP_EVENT_BROADCAST = threading.Event()
+
+AVAILABLE_DEVICES = {b'c': True,
+                     b'm': True,
+                     b's': True}
 
 
 def broadcast_beacon():
@@ -37,11 +41,15 @@ def connection_handler():
     def handle_camera_stream():
         print("handle_connection -> Trying to receive camera input")
         data = b''
+        cam_res_info = pickle.loads(conn.recv(BUFFER))
+        print(cam_res_info)
+        res_x = cam_res_info[0]
+        res_y = cam_res_info[1]
         payload_size = struct.calcsize("Q")
 
         print(payload_size)
 
-        with pyvirtualcam.Camera(vc.args.width, vc.args.height, vc.args.fps) as cam:
+        with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
             print(f'Virtual camera started at {cam.device}')
             while True:
                 while len(data) < payload_size:
@@ -65,6 +73,12 @@ def connection_handler():
                 cam.send(rgb_frame)
                 cam.sleep_until_next_frame()
 
+    def handle_screen_stream():
+        pass
+
+    def handle_mic_stream():
+        pass
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((HOST, PORT))
     sock.listen(5)
@@ -83,13 +97,20 @@ def connection_handler():
                 #
 
                 recv_cmd = conn.recv(BUFFER)
-                if recv_cmd == b'c':
-                    camera_stream_thread = threading.Thread(target=handle_camera_stream)
-                    camera_stream_thread.start()
-                elif recv_cmd == b'm':
-                    pass
-                elif recv_cmd == b's':
-                    pass
+                if AVAILABLE_DEVICES[recv_cmd]:
+                    if recv_cmd == b'c':
+                        camera_stream_thread = threading.Thread(target=handle_camera_stream)
+                        camera_stream_thread.start()
+                        AVAILABLE_DEVICES[recv_cmd] = False
+                    elif recv_cmd == b'm':
+                        mic_stream_thread = threading.Thread(target=handle_mic_stream)
+                        mic_stream_thread.start()
+                        AVAILABLE_DEVICES[recv_cmd] = False
+                    elif recv_cmd == b's':
+                        screen_stream_thread = threading.Thread(target=handle_screen_stream)
+                        screen_stream_thread.start()
+                        AVAILABLE_DEVICES[recv_cmd] = False
+
             except socket.timeout:
                 continue
     except Exception as e:

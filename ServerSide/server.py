@@ -41,16 +41,30 @@ def connection_handler():
     def handle_camera_stream():
         print("handle_connection -> Trying to receive camera input")
         data = b''
-        cam_res_info = pickle.loads(conn.recv(BUFFER))
-        print(cam_res_info)
-        res_x = cam_res_info[0]
-        res_y = cam_res_info[1]
         payload_size = struct.calcsize("Q")
 
         print(payload_size)
 
+        while len(data) < payload_size:
+            chunk = conn.recv(BUFFER)
+            if not chunk:
+                return
+            data += chunk
+        packed_msg_size = data[:payload_size]
+        data = data[payload_size:]
+        msg_size = struct.unpack("Q", packed_msg_size)[0]
+
+        while len(data) < msg_size:
+            data += conn.recv(BUFFER)
+
+        frame_data = data[:msg_size]
+        data = data[msg_size:]
+
+        frame = pickle.loads(frame_data)
+        res_y, res_x = frame.shape[:2]
+
         with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
-            print(f'Virtual camera started at {cam.device}')
+            print(f'Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
             while True:
                 while len(data) < payload_size:
                     chunk = conn.recv(BUFFER)
@@ -74,10 +88,10 @@ def connection_handler():
                 cam.sleep_until_next_frame()
 
     def handle_screen_stream():
-        pass
+        print("New thread started -> handle_screen_stream")
 
     def handle_mic_stream():
-        pass
+        print("New thread started -> handle_mic_stream")
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((HOST, PORT))

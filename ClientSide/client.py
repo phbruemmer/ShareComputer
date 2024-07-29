@@ -23,16 +23,16 @@ def listen_for_beacon():
 
     try:
         while listening:
-            print(f"Listening for (UDP-) beacons on port {PORT}...")
+            print(f"[UDP-info] Listening for beacons on port {PORT}...")
             try:
                 data, addr = sock.recvfrom(BUFFER)
-                print(f"Beacon received from {addr}: {data.decode()}")
-                continue_listening = input(f" > Do you want to connect to {addr}? (y/n)\n")
+                print(f"[UDP-info] Beacon received from {addr}: {data.decode()}")
+                continue_listening = input(f"[TCP] > Do you want to connect to {addr}? (y/n)\n")
                 if continue_listening == 'y':
                     listening = False
             except socket.timeout:
                 listening = False
-                print("Listening timed out. No beacons received.")
+                print("[timeout] Listening timed out. No beacons received.")
     finally:
         sock.close()
     return addr[0] if addr else None

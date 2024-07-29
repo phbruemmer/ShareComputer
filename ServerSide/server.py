@@ -107,10 +107,10 @@ def connection_handler(conn, addr):
                 cam.sleep_until_next_frame()
 
     def handle_screen_stream():
-        print(f"handle_screen_stream -> Connection from {addr}")
+        print(f"[screen-share] handle_screen_stream -> Connection from {addr}")
 
     def handle_mic_stream():
-        print(f"handle_mic_stream -> Connection from {addr}")
+        print(f"[mic-share] handle_mic_stream -> Connection from {addr}")
 
     try:
         conn.send(b'Connection successfully established!')

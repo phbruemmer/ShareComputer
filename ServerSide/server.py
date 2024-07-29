@@ -6,7 +6,6 @@ import threading
 import cv2
 import pyvirtualcam
 
-
 HOST_NAME = socket.gethostname()
 HOST = socket.gethostbyname(HOST_NAME)
 PORT = 5000
@@ -29,21 +28,41 @@ def broadcast_beacon():
     try:
         while not STOP_EVENT_BROADCAST.is_set():
             sock.sendto(msg.encode(), ('<broadcast>', PORT))
-            print(f"Broadcast message sent: {msg}")
+            print(f"[broadcast] Broadcast message sent: {msg}")
             time.sleep(5)
     except Exception as e:
-        print(f"Broadcasting error: {e}")
+        print(f"[ERROR] Broadcasting error: {e}")
     finally:
         sock.close()
 
 
-def connection_handler():
+def connection_handler(conn, addr):
+    def cmd_handler():
+        recv_cmd = conn.recv(BUFFER)
+        if recv_cmd in AVAILABLE_DEVICES and AVAILABLE_DEVICES[recv_cmd]:
+            if recv_cmd == b'c':
+                AVAILABLE_DEVICES[recv_cmd] = False
+                try:
+                    handle_camera_stream()
+                finally:
+                    AVAILABLE_DEVICES[recv_cmd] = True
+            elif recv_cmd == b'm':
+                AVAILABLE_DEVICES[recv_cmd] = False
+                try:
+                    handle_mic_stream()
+                finally:
+                    AVAILABLE_DEVICES[recv_cmd] = True
+            elif recv_cmd == b's':
+                AVAILABLE_DEVICES[recv_cmd] = False
+                try:
+                    handle_screen_stream()
+                finally:
+                    AVAILABLE_DEVICES[recv_cmd] = True
+
     def handle_camera_stream():
-        print("handle_connection -> Trying to receive camera input")
+        print(f"[cam-share] handle_camera_stream -> Connection from {addr}")
         data = b''
         payload_size = struct.calcsize("Q")
-
-        print(payload_size)
 
         while len(data) < payload_size:
             chunk = conn.recv(BUFFER)
@@ -64,7 +83,7 @@ def connection_handler():
         res_y, res_x = frame.shape[:2]
 
         with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
-            print(f'Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
+            print(f'[cam-share] Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
             while True:
                 while len(data) < payload_size:
                     chunk = conn.recv(BUFFER)
@@ -88,68 +107,63 @@ def connection_handler():
                 cam.sleep_until_next_frame()
 
     def handle_screen_stream():
-        print("New thread started -> handle_screen_stream")
+        print(f"handle_screen_stream -> Connection from {addr}")
 
     def handle_mic_stream():
-        print("New thread started -> handle_mic_stream")
+        print(f"handle_mic_stream -> Connection from {addr}")
 
+    try:
+        conn.send(b'Connection successfully established!')
+        cmd_handler()
+    except Exception as e:
+        print(f"[ERROR] Error in connection handler for {addr}: {e}")
+    finally:
+        conn.close()
+        print(f"[socket-info] Connection with {addr} closed")
+
+
+def start_server():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((HOST, PORT))
     sock.listen(5)
-    print(f" > Listening for connections on {HOST}:{PORT}")
+    print(f"TCP-info > Listening for connections on {HOST}:{PORT}")
 
     try:
         while not STOP_EVENT_CONN_HANDLER.is_set():
             sock.settimeout(1)
             try:
                 conn, addr = sock.accept()
-                print(f"Connection from {addr}")
-                STOP_EVENT_BROADCAST.set()
-                conn.send(b'Connection successfully established!')
-                #
-                #   Execute function -> recv. Data e.g. if mic / cam / screen -> execute the corresponding function
-                #
-
-                recv_cmd = conn.recv(BUFFER)
-                if AVAILABLE_DEVICES[recv_cmd]:
-                    if recv_cmd == b'c':
-                        camera_stream_thread = threading.Thread(target=handle_camera_stream)
-                        camera_stream_thread.start()
-                        AVAILABLE_DEVICES[recv_cmd] = False
-                    elif recv_cmd == b'm':
-                        mic_stream_thread = threading.Thread(target=handle_mic_stream)
-                        mic_stream_thread.start()
-                        AVAILABLE_DEVICES[recv_cmd] = False
-                    elif recv_cmd == b's':
-                        screen_stream_thread = threading.Thread(target=handle_screen_stream)
-                        screen_stream_thread.start()
-                        AVAILABLE_DEVICES[recv_cmd] = False
-
+                if not STOP_EVENT_BROADCAST.is_set():
+                    STOP_EVENT_BROADCAST.set()
+                print(f"[socket-info] Connection from {addr}")
+                connection_handler_thread = threading.Thread(target=connection_handler, args=(conn, addr))
+                connection_handler_thread.start()
             except socket.timeout:
                 continue
     except Exception as e:
-        print(f"Connection handling error: {e}")
+        print(f"[ERROR] Connection handling error: {e}")
     finally:
         sock.close()
+        print("[socket-info] Server socket closed")
 
 
 def main():
     broadcast_thread = threading.Thread(target=broadcast_beacon)
     broadcast_thread.start()
 
-    connection_thread = threading.Thread(target=connection_handler)
-    connection_thread.start()
+    server_thread = threading.Thread(target=start_server)
+    server_thread.start()
 
     try:
-        while not STOP_EVENT_CONN_HANDLER.is_set() or not STOP_EVENT_BROADCAST.is_set():
+        while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Stopping server...")
+        print("[socket-info] Stopping server...")
         STOP_EVENT_BROADCAST.set()
         STOP_EVENT_CONN_HANDLER.set()
         broadcast_thread.join()
-        connection_thread.join()
-        print("Server stopped.")
+        server_thread.join()
+        print("[socket-info] Server stopped.")
 
 
 if __name__ == '__main__':

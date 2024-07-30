@@ -1,17 +1,19 @@
-import pickle
-import struct
 import cv2
 import threading
+import stream_data
 
 CAMERA_STREAM_STOP_EVENT = threading.Event()
 
 
 def start_camera_stream(sock):
-    camera = cv2.VideoCapture(0)
+    try:
+        camera = cv2.VideoCapture(0)
 
-    while not CAMERA_STREAM_STOP_EVENT.is_set() and camera.isOpened():
-        ret, frame = camera.read()
-        data_ = pickle.dumps(frame)
-        msg = struct.pack("Q", len(data_)) + data_
-        sock.send(msg)
-    camera.release()
+        while not CAMERA_STREAM_STOP_EVENT.is_set() and camera.isOpened():
+            ret, frame = camera.read()
+            stream_data.send_data(sock, frame)
+        camera.release()
+    except cv2.error as e:
+        print(f"[ERROR] - cv2 error - {e}")
+    except Exception as e:
+        print(f"[ERROR] - unexpected error - {e}")

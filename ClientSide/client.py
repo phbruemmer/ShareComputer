@@ -67,7 +67,7 @@ def client_connected(addr):
                 for t in threading.enumerate():
                     if t is main_thread:
                         continue
-                    logging.debug(f'joining {t.name}...')
+                    logging.debug(f'[threads] joining {t.name}...')
                     t.join()
                 exit(0)
             else:
@@ -77,13 +77,13 @@ def client_connected(addr):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.connect((addr, PORT))
-                print(f'Trying to connect... - {addr}:{PORT}')
+                print(f'[socket-info] Trying to connect... - {addr}:{PORT}')
                 data = sock.recv(BUFFER)
                 print(data.decode())
                 sock.send(execute_cmd)
                 function(sock)
         except socket.error:
-            print("Connection error - Is the server running?")
+            print("[socket-info] Connection error - Is the server running?")
         finally:
             AVAILABLE_DEVICES[execute_cmd.decode()][0] = True
 

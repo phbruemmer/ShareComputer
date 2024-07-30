@@ -59,48 +59,47 @@ def connection_handler(conn, addr):
                 finally:
                     AVAILABLE_DEVICES[recv_cmd] = True
 
-    def handle_camera_stream():
-        print(f"[cam-share] handle_camera_stream -> Connection from {addr}")
-        data = b''
-        payload_size = struct.calcsize("Q")
-
+    def data_recv(data, payload_size):
         while len(data) < payload_size:
             chunk = conn.recv(BUFFER)
             if not chunk:
-                return
+                break
             data += chunk
+
         packed_msg_size = data[:payload_size]
         data = data[payload_size:]
         msg_size = struct.unpack("Q", packed_msg_size)[0]
 
         while len(data) < msg_size:
-            data += conn.recv(BUFFER)
+            chunk = conn.recv(BUFFER)
+            if not chunk:
+                break
+            data += chunk
 
-        frame_data = data[:msg_size]
+        inp_data = data[:msg_size]
         data = data[msg_size:]
+        data_out = pickle.loads(inp_data)
+        return data_out, data
 
-        frame = pickle.loads(frame_data)
+    def handle_camera_stream():
+        print(f"[cam-share] handle_camera_stream -> Connection from {addr}")
+        data = b''
+        payload_size = struct.calcsize("Q")
+
+        frame, data = data_recv(data, payload_size)
+        if frame is None:
+            print("[cam-share] Connection closed or error during initial frame reception.")
+            return
+
         res_y, res_x = frame.shape[:2]
 
         with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
             print(f'[cam-share] Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
             while True:
-                while len(data) < payload_size:
-                    chunk = conn.recv(BUFFER)
-                    if not chunk:
-                        return
-                    data += chunk
-                packed_msg_size = data[:payload_size]
-                data = data[payload_size:]
-                msg_size = struct.unpack("Q", packed_msg_size)[0]
-
-                while len(data) < msg_size:
-                    data += conn.recv(BUFFER)
-
-                frame_data = data[:msg_size]
-                data = data[msg_size:]
-
-                frame = pickle.loads(frame_data)
+                frame, data = data_recv(data, payload_size)
+                if frame is None:
+                    print("[cam-share] Connection closed or error during frame reception.")
+                    break
 
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cam.send(rgb_frame)
@@ -108,9 +107,14 @@ def connection_handler(conn, addr):
 
     def handle_screen_stream():
         print(f"[screen-share] handle_screen_stream -> Connection from {addr}")
+        data = b''
+        payload_size = struct.calcsize('Q')
 
     def handle_mic_stream():
         print(f"[mic-share] handle_mic_stream -> Connection from {addr}")
+        data = b''
+        payload_size = struct.calcsize('Q')
+        mic_out, data = data_recv(data, payload_size)
 
     try:
         conn.send(b'Connection successfully established!')

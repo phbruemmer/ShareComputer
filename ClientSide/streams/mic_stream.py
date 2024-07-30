@@ -1,8 +1,7 @@
 import pyaudio
 import socket
 import threading
-import stream_data
-
+from ClientSide.streams import stream_data
 
 MIC_INPUT_EVENT = threading.Event()
 BUFFER = 1024

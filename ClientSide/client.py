@@ -92,7 +92,7 @@ def client_connected(addr):
                 data = sock.recv(BUFFER)
                 print(data.decode())
                 sock.send(execute_cmd)
-                function(sock)
+                function(sock, ACTIVATE_NEW_THREAD)
         except socket.error:
             print("[socket-info] Connection error - Is the server running?")
         finally:

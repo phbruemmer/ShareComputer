@@ -150,6 +150,8 @@ def connection_handler(conn, addr):
                     print("[mic-share] Connection closed or error during data reception.")
                     break
                 output_stream.write(mic_out)
+        except KeyboardInterrupt:
+            print("[mic-share] stopping output stream...")
         except socket.error as se:
             print(f"[socket-info] {se}")
         output_stream.stop_stream()

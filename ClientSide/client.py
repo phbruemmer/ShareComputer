@@ -12,6 +12,13 @@ AVAILABLE_DEVICES = {'c': [True, 'Cam -> c'],
                      'm': [True, 'Mic -> m'],
                      's': [True, 'Screen -> s']}
 
+ACTIVATE_NEW_THREAD = threading.Event()
+
+
+def clear_event():
+    ACTIVATE_NEW_THREAD.clear()
+    print("[threading] event cleared.")
+
 
 def listen_for_beacon():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -41,6 +48,10 @@ def listen_for_beacon():
 def client_connected(addr):
     def user_input():
         while True:
+            print("[threading] waiting for event...")
+            ACTIVATE_NEW_THREAD.wait()
+            print("[threading] event received.\n[threading] continuing loop.\n[threading] clearing event...")
+            clear_event()
             print("\n# # #\nS E L E C T - O P T I O N\n# # #\n")
             for i in AVAILABLE_DEVICES:
                 if AVAILABLE_DEVICES[i][0]:
@@ -61,7 +72,7 @@ def client_connected(addr):
                 screen_stream_thread.start()
             elif selected_device == '':
                 camera_stream.CAMERA_STREAM_STOP_EVENT.set()
-                # SET EVENT -> mic
+                mic_stream.MIC_INPUT_EVENT.set()
                 # SET EVENT -> screen
                 main_thread = threading.current_thread()
                 for t in threading.enumerate():
@@ -94,6 +105,7 @@ def main():
     addr = listen_for_beacon()
     if addr is None:
         return
+    ACTIVATE_NEW_THREAD.set()
     client_connected(addr)
 
 

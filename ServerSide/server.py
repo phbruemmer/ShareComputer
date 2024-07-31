@@ -5,6 +5,7 @@ import struct
 import threading
 import cv2
 import pyvirtualcam
+import pyaudio
 
 HOST_NAME = socket.gethostname()
 HOST = socket.gethostbyname(HOST_NAME)
@@ -112,9 +113,48 @@ def connection_handler(conn, addr):
 
     def handle_mic_stream():
         print(f"[mic-share] handle_mic_stream -> Connection from {addr}")
+        confirmation = struct.unpack('?', conn.recv(1))[0]
+        print(confirmation)
+        if not confirmation:
+            print("[mic-share] invalid confirmation code received from client.\nStopping mic-share...")
+            return
+        print("[user-input] Select your output device:")
+        p = pyaudio.PyAudio()
+        i = 0
+        for i in range(p.get_device_count()):
+            info = p.get_device_info_by_index(i)['name']
+            print(f"[mic-share] {i} : {info}")
+        device_index = int(input("Enter device index:\n"))
+        if device_index < 0 or device_index > i:
+            print(f"[mic-share] couldn't find a device with index {device_index}")
+            conn.send(struct.pack('?', False))
+            return
+        conn.send(struct.pack('?', True))
         data = b''
         payload_size = struct.calcsize('Q')
         mic_out, data = data_recv(data, payload_size)
+        if mic_out is None:
+            print("[mic-share] Connection closed or error during initial data reception.")
+            return
+
+        output_stream = p.open(format=pyaudio.paInt16,
+                               channels=1,
+                               rate=44100,
+                               output=True,
+                               output_device_index=device_index,
+                               frames_per_buffer=1024)
+        try:
+            while True:
+                mic_out, data = data_recv(data, payload_size)
+                if mic_out is None:
+                    print("[mic-share] Connection closed or error during data reception.")
+                    break
+                output_stream.write(mic_out)
+        except socket.error as se:
+            print(f"[socket-info] {se}")
+        output_stream.stop_stream()
+        output_stream.close()
+        p.terminate()
 
     try:
         conn.send(b'Connection successfully established!')

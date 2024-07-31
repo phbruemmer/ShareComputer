@@ -5,8 +5,8 @@ import ClientSide.client
 CAMERA_STREAM_STOP_EVENT = threading.Event()
 
 
-def start_camera_stream(sock):
-    ClientSide.client.ACTIVATE_NEW_THREAD.set()
+def start_camera_stream(sock, activate_new_thread):
+    activate_new_thread.set()
     try:
         camera = cv2.VideoCapture(0)
 

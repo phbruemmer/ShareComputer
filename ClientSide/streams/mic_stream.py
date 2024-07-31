@@ -1,17 +1,15 @@
 import struct
 
 import pyaudio
-import socket
 import threading
 from ClientSide.streams import stream_data
-import ClientSide.client
 
 MIC_INPUT_EVENT = threading.Event()
 
 BUFFER = 1024
 
 
-def start_mic_stream(sock):
+def start_mic_stream(sock, activate_new_thread):
     p = pyaudio.PyAudio()
     print("[user-input] Select your input device:")
     i = 0
@@ -23,11 +21,9 @@ def start_mic_stream(sock):
         print(f"[mic-share] couldn't find a device with index {device_index}.")
         sock.send(struct.pack('?', False))
         return
-
+    activate_new_thread.set()
     sock.send(struct.pack('?', True))
     confirmation = struct.unpack('?', sock.recv(1))[0]
-
-    ClientSide.client.ACTIVATE_NEW_THREAD.set()
 
     if not confirmation:
         print("[mic-share] invalid confirmation code received from server.\nStopping mic-share...")
@@ -42,9 +38,9 @@ def start_mic_stream(sock):
     try:
         while not MIC_INPUT_EVENT.is_set():
             mic_inp = stream.read(BUFFER)
-            stream_data.send_data(sock, mic_inp)
-    except socket.error as e:
-        print(f"[ERROR] - Socket error - {e}")
+            err = stream_data.send_data(sock, mic_inp)
+            if err:
+                MIC_INPUT_EVENT.set()
     except Exception as e:
         print(f"[ERROR] - Unexpected error occurred - {e}")
     stream.stop_stream()

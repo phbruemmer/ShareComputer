@@ -19,6 +19,8 @@ AVAILABLE_DEVICES = {b'c': True,
                      b'm': True,
                      b's': True}
 
+CLIENT_SOCKETS = []
+
 
 def broadcast_beacon():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -182,6 +184,7 @@ def start_server():
                 if not STOP_EVENT_BROADCAST.is_set():
                     STOP_EVENT_BROADCAST.set()
                 print(f"[socket-info] Connection from {addr}")
+                CLIENT_SOCKETS.append(conn)
                 connection_handler_thread = threading.Thread(target=connection_handler, args=(conn, addr))
                 connection_handler_thread.start()
             except socket.timeout:
@@ -207,6 +210,8 @@ def main():
         print("[socket-info] Stopping server...")
         STOP_EVENT_BROADCAST.set()
         STOP_EVENT_CONN_HANDLER.set()
+        for conn in CLIENT_SOCKETS:
+            conn.close()
         broadcast_thread.join()
         server_thread.join()
         print("[socket-info] Server stopped.")

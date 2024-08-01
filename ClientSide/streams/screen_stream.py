@@ -17,11 +17,12 @@ def start_screen_stream(sock, activate_new_thread):
             print(f"[screen-share] {i} : {monitor_}")
         monitor_index = int(input("Enter monitor index:"))
         if monitor_index < 0 or monitor_index > i:
+            print("[screen-share] invalid monitor index.\n[screen-share] returning...")
             sock.send(struct.pack('?', False))
             return
         sock.send(struct.pack('?', True))
         activate_new_thread.set()
-        confirmation = struct.unpack('?', sock.recv(1))
+        confirmation = struct.unpack('?', sock.recv(1))[0]
         if not confirmation:
             return
         monitor = sct.monitors[monitor_index]

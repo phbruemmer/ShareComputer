@@ -110,15 +110,40 @@ def connection_handler(conn, addr):
 
     def handle_screen_stream():
         print(f"[screen-share] handle_screen_stream -> Connection from {addr}")
+        confirmation = struct.unpack('?', conn.recv(1))[0]
+        if not confirmation:
+            print("[screen-share] invalid confirmation code received from client.\n"
+                  "[screen-share] Stopping screen-share...")
+            return
+
         data = b''
-        payload_size = struct.calcsize('Q')
+        payload_size = struct.calcsize("Q")
+
+        frame, data = data_recv(data, payload_size)
+        if frame is None:
+            print("[cam-share] Connection closed or error during initial frame reception.")
+            return
+
+        res_y, res_x = frame.shape[:2]
+
+        with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
+            print(f'[cam-share] Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
+            while True:
+                frame, data = data_recv(data, payload_size)
+                if frame is None:
+                    print("[cam-share] Connection closed or error during frame reception.")
+                    break
+
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                cam.send(rgb_frame)
+                cam.sleep_until_next_frame()
 
     def handle_mic_stream():
         print(f"[mic-share] handle_mic_stream -> Connection from {addr}")
         confirmation = struct.unpack('?', conn.recv(1))[0]
         print(confirmation)
         if not confirmation:
-            print("[mic-share] invalid confirmation code received from client.\nStopping mic-share...")
+            print("[mic-share] invalid confirmation code received from client.\n[mic-share] Stopping mic-share...")
             return
         print("[user-input] Select your output device:")
         p = pyaudio.PyAudio()

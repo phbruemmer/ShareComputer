@@ -84,29 +84,32 @@ def connection_handler(conn, addr):
         data_out = pickle.loads(inp_data)
         return data_out, data
 
-    def handle_camera_stream():
-        print(f"[cam-share] handle_camera_stream -> Connection from {addr}")
+    def virtual_cam(share_type):
         data = b''
         payload_size = struct.calcsize("Q")
 
         frame, data = data_recv(data, payload_size)
         if frame is None:
-            print("[cam-share] Connection closed or error during initial frame reception.")
+            print(f"[{share_type}] Connection closed or error during initial frame reception.")
             return
 
         res_y, res_x = frame.shape[:2]
 
         with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
-            print(f'[cam-share] Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
+            print(f'[{share_type}] Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
             while True:
                 frame, data = data_recv(data, payload_size)
                 if frame is None:
-                    print("[cam-share] Connection closed or error during frame reception.")
+                    print(f"[{share_type}] Connection closed or error during frame reception.")
                     break
 
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cam.send(rgb_frame)
                 cam.sleep_until_next_frame()
+
+    def handle_camera_stream():
+        print(f"[cam-share] handle_camera_stream -> Connection from {addr}")
+        virtual_cam("cam-share")
 
     def handle_screen_stream():
         print(f"[screen-share] handle_screen_stream -> Connection from {addr}")
@@ -116,27 +119,7 @@ def connection_handler(conn, addr):
                   "[screen-share] Stopping screen-share...")
             return
         print("[screen-share] valid confirmation code received from client.")
-        data = b''
-        payload_size = struct.calcsize("Q")
-
-        frame, data = data_recv(data, payload_size)
-        if frame is None:
-            print("[cam-share] Connection closed or error during initial frame reception.")
-            return
-
-        res_y, res_x = frame.shape[:2]
-
-        with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
-            print(f'[cam-share] Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
-            while True:
-                frame, data = data_recv(data, payload_size)
-                if frame is None:
-                    print("[cam-share] Connection closed or error during frame reception.")
-                    break
-
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                cam.send(rgb_frame)
-                cam.sleep_until_next_frame()
+        virtual_cam("screen-share")
 
     def handle_mic_stream():
         print(f"[mic-share] handle_mic_stream -> Connection from {addr}")

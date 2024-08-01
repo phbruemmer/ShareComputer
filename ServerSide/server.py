@@ -115,7 +115,7 @@ def connection_handler(conn, addr):
             print("[screen-share] invalid confirmation code received from client.\n"
                   "[screen-share] Stopping screen-share...")
             return
-
+        print("[screen-share] valid confirmation code received from client.")
         data = b''
         payload_size = struct.calcsize("Q")
 

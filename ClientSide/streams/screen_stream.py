@@ -26,7 +26,7 @@ def start_screen_stream(sock, activate_new_thread):
         sock.send(struct.pack('?', True))
         monitor = sct.monitors[monitor_index]
         try:
-            while True:
+            while not SCREEN_STREAM_EVENT.is_set():
                 screenshot = sct.grab(monitor)
                 frame = np.array(screenshot)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

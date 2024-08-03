@@ -73,7 +73,7 @@ def client_connected(addr):
             elif selected_device == '':
                 camera_stream.CAMERA_STREAM_STOP_EVENT.set()
                 mic_stream.MIC_INPUT_EVENT.set()
-                # SET EVENT -> screen
+                screen_stream.SCREEN_STREAM_EVENT.set()
                 main_thread = threading.current_thread()
                 for t in threading.enumerate():
                     if t is main_thread:

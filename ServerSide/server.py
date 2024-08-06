@@ -179,29 +179,29 @@ def connection_handler(conn, addr):
 
 
 def start_server():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind((HOST, PORT))
-    sock.listen(5)
-    print(f"TCP-info > Listening for connections on {HOST}:{PORT}")
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind((HOST, PORT))
+        sock.listen(5)
+        print(f"TCP-info > Listening for connections on {HOST}:{PORT}")
 
-    try:
-        while not STOP_EVENT_CONN_HANDLER.is_set():
-            sock.settimeout(1)
-            try:
-                conn, addr = sock.accept()
-                if not STOP_EVENT_BROADCAST.is_set():
-                    STOP_EVENT_BROADCAST.set()
-                print(f"[socket-info] Connection from {addr}")
-                CLIENT_SOCKETS.append(conn)
-                connection_handler_thread = threading.Thread(target=connection_handler, args=(conn, addr))
-                connection_handler_thread.start()
-            except socket.timeout:
-                continue
-    except Exception as e:
-        print(f"[ERROR] Connection handling error: {e}")
-    finally:
-        sock.close()
-        print("[socket-info] Server socket closed")
+        try:
+            while not STOP_EVENT_CONN_HANDLER.is_set():
+                sock.settimeout(1)
+                try:
+                    conn, addr = sock.accept()
+                    if not STOP_EVENT_BROADCAST.is_set():
+                        STOP_EVENT_BROADCAST.set()
+                    print(f"[socket-info] Connection from {addr}")
+                    CLIENT_SOCKETS.append(conn)
+                    connection_handler_thread = threading.Thread(target=connection_handler, args=(conn, addr))
+                    connection_handler_thread.start()
+                except socket.timeout:
+                    continue
+        except Exception as e:
+            print(f"[ERROR] Connection handling error: {e}")
+        finally:
+            sock.close()
+            print("[socket-info] Server socket closed")
 
 
 def main():

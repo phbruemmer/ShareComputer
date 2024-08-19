@@ -2,7 +2,10 @@ import logging
 import socket
 import threading
 
-from ClientSide.streams import camera_stream, mic_stream, screen_stream
+import streams.stream_data
+import streams.screen_stream
+import streams.mic_stream
+import streams.camera_stream
 
 PORT = 5000
 TIMEOUTS = 10
@@ -60,20 +63,20 @@ def client_connected(addr):
             available = AVAILABLE_DEVICES.get(selected_device, [False])[0]
             if selected_device == 'c' and available:
                 AVAILABLE_DEVICES[selected_device][0] = False
-                camera_stream_thread = threading.Thread(target=connect, args=(b'c', camera_stream.start_camera_stream))
+                camera_stream_thread = threading.Thread(target=connect, args=(b'c', streams.start_camera_stream))
                 camera_stream_thread.start()
             elif selected_device == 'm' and available:
                 AVAILABLE_DEVICES[selected_device][0] = False
-                mic_stream_thread = threading.Thread(target=connect, args=(b'm', mic_stream.start_mic_stream))
+                mic_stream_thread = threading.Thread(target=connect, args=(b'm', streams.start_mic_stream))
                 mic_stream_thread.start()
             elif selected_device == 's' and available:
                 AVAILABLE_DEVICES[selected_device][0] = False
-                screen_stream_thread = threading.Thread(target=connect, args=(b's', screen_stream.start_screen_stream))
+                screen_stream_thread = threading.Thread(target=connect, args=(b's', streams.start_screen_stream))
                 screen_stream_thread.start()
             elif selected_device == '':
-                camera_stream.CAMERA_STREAM_STOP_EVENT.set()
-                mic_stream.MIC_INPUT_EVENT.set()
-                screen_stream.SCREEN_STREAM_EVENT.set()
+                streams.camera_stream.CAMERA_STREAM_STOP_EVENT.set()
+                streams.mic_stream.MIC_INPUT_EVENT.set()
+                streams.screen_stream.SCREEN_STREAM_EVENT.set()
                 main_thread = threading.current_thread()
                 for t in threading.enumerate():
                     if t is main_thread:

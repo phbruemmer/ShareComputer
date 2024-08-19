@@ -2,7 +2,7 @@ import struct
 
 import pyaudio
 import threading
-from ClientSide.streams import stream_data
+from . import stream_data
 
 MIC_INPUT_EVENT = threading.Event()
 

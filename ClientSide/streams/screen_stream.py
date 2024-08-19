@@ -5,7 +5,7 @@ import numpy as np
 import mss
 import mss.tools
 import threading
-import ClientSide.streams.stream_data
+from . import stream_data
 
 SCREEN_STREAM_EVENT = threading.Event()
 STD_RESOLUTION = (1920, 1080)
@@ -31,7 +31,7 @@ def start_screen_stream(sock, activate_new_thread):
                 frame = np.array(screenshot)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame = cv2.resize(frame, STD_RESOLUTION, interpolation=cv2.INTER_AREA)
-                ClientSide.streams.stream_data.send_data(sock, frame)
+                stream_data.send_data(sock, frame)
         except Exception as e:
             print(f"[ERROR] {e}")
         finally:

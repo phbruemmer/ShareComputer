@@ -1,7 +1,6 @@
 import cv2
 import threading
-from ClientSide.streams import stream_data
-import ClientSide.client
+from . import stream_data
 CAMERA_STREAM_STOP_EVENT = threading.Event()
 
 

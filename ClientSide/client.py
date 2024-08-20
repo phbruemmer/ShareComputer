@@ -63,15 +63,15 @@ def client_connected(addr):
             available = AVAILABLE_DEVICES.get(selected_device, [False])[0]
             if selected_device == 'c' and available:
                 AVAILABLE_DEVICES[selected_device][0] = False
-                camera_stream_thread = threading.Thread(target=connect, args=(b'c', streams.start_camera_stream))
+                camera_stream_thread = threading.Thread(target=connect, args=(b'c', streams.camera_stream.start_camera_stream))
                 camera_stream_thread.start()
             elif selected_device == 'm' and available:
                 AVAILABLE_DEVICES[selected_device][0] = False
-                mic_stream_thread = threading.Thread(target=connect, args=(b'm', streams.start_mic_stream))
+                mic_stream_thread = threading.Thread(target=connect, args=(b'm', streams.mic_stream.start_mic_stream))
                 mic_stream_thread.start()
             elif selected_device == 's' and available:
                 AVAILABLE_DEVICES[selected_device][0] = False
-                screen_stream_thread = threading.Thread(target=connect, args=(b's', streams.start_screen_stream))
+                screen_stream_thread = threading.Thread(target=connect, args=(b's', streams.screen_stream.start_screen_stream))
                 screen_stream_thread.start()
             elif selected_device == '':
                 streams.camera_stream.CAMERA_STREAM_STOP_EVENT.set()

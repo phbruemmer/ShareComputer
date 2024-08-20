@@ -31,7 +31,9 @@ def start_screen_stream(sock, activate_new_thread):
                 frame = np.array(screenshot)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame = cv2.resize(frame, STD_RESOLUTION, interpolation=cv2.INTER_AREA)
-                stream_data.send_data(sock, frame)
+                stream_error_report = stream_data.send_data(sock, frame)
+                if stream_error_report:
+                    SCREEN_STREAM_EVENT.set()
         except Exception as e:
             print(f"[ERROR] {e}")
         finally:

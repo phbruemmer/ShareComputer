@@ -6,6 +6,7 @@ import threading
 import cv2
 import pyvirtualcam
 import pyaudio
+import numpy as np
 
 HOST_NAME = socket.gethostname()
 HOST = socket.gethostbyname(HOST_NAME)
@@ -88,24 +89,45 @@ def connection_handler(conn, addr):
         data = b''
         payload_size = struct.calcsize("Q")
 
-        frame, data = data_recv(data, payload_size)
-        if frame is None:
-            print(f"[{share_type}] Connection closed or error during initial frame reception.")
-            return
-
-        res_y, res_x = frame.shape[:2]
-
-        with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
-            print(f'[{share_type}] Virtual camera started at {cam.device} with resolution {res_x}x{res_y}')
+        try:
             while True:
                 frame, data = data_recv(data, payload_size)
                 if frame is None:
-                    print(f"[{share_type}] Connection closed or error during frame reception.")
-                    break
+                    print(f"[{share_type}] Connection closed or error during initial frame reception.")
+                    return
 
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                cam.send(rgb_frame)
-                cam.sleep_until_next_frame()
+                if isinstance(frame, bytes):
+                    frame_array = cv2.imdecode(np.frombuffer(frame, np.uint8), cv2.IMREAD_COLOR)
+                    if frame_array is None:
+                        print(f"[{share_type}] Error decoding the initial frame.")
+                        return
+                else:
+                    frame_array = frame
+
+                res_x, res_y = frame_array.shape[1], frame_array.shape[0]
+                print(f"[{share_type}] Virtual camera resolution set to {res_x}x{res_y}")
+                break
+
+            with pyvirtualcam.Camera(width=res_x, height=res_y, fps=30) as cam:
+                print(f'[{share_type}] Virtual camera started at {cam.device}')
+
+                while True:
+                    frame, data = data_recv(data, payload_size)
+                    if frame is None:
+                        print(f"[{share_type}] Connection closed or error during frame reception.")
+                        break
+
+                    if isinstance(frame, bytes):
+                        frame_array = cv2.imdecode(np.frombuffer(frame, np.uint8), cv2.IMREAD_COLOR)
+                        if frame_array is None:
+                            print(f"[{share_type}] Error decoding frame, skipping...")
+                            continue
+
+                    rgb_frame = cv2.cvtColor(frame_array, cv2.COLOR_BGR2RGB)
+                    cam.send(rgb_frame)
+                    cam.sleep_until_next_frame()
+        except Exception as e:
+            print(f"[{share_type}] Error in virtual camera handler: {e}")
 
     def handle_camera_stream():
         print(f"[cam-share] handle_camera_stream -> Connection from {addr}")

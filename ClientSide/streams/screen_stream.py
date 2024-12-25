@@ -1,11 +1,10 @@
 import struct
-
 import cv2
 import numpy as np
 import mss
 import mss.tools
 import threading
-from . import stream_data
+import stream_data
 
 SCREEN_STREAM_EVENT = threading.Event()
 STD_RESOLUTION = (1920, 1080)
